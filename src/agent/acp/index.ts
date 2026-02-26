@@ -412,6 +412,9 @@ export class AcpAgent {
 
     // Cancel pending requests and notify the backend via notifications/cancelled.
     // Keep session and child process alive to preserve conversation history.
+    // Note: approvalStore is intentionally NOT cleared here — it follows the session
+    // lifetime. Since stop() no longer disconnects, previously granted "always allow"
+    // decisions remain valid for the living session. A full disconnect() will clear it.
     this.connection.cancelPendingRequests();
     // Emit finish event to reset frontend UI state
     this.onStreamEvent({
@@ -513,6 +516,13 @@ export class AcpAgent {
       return { success: true, data: null };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+      // User-initiated cancellation — not a real error, skip error toast
+      if (errorMsg.includes('cancelled') || errorMsg.includes('Cancelled')) {
+        return {
+          success: false,
+          error: createAcpError(AcpErrorType.CANCELLED, errorMsg, false),
+        };
+      }
       // Special handling for Internal error
       if (errorMsg.includes('Internal error')) {
         if (this.extra.backend === 'qwen') {

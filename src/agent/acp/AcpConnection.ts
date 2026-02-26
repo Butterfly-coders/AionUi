@@ -89,6 +89,8 @@ export class AcpConnection {
   private _isCancelled = false;
   /** Request IDs that were cancelled but whose backend responses haven't arrived yet. */
   private _cancelledRequestIds = new Set<number>();
+  /** Handle for the safety-reset timer so we can clear it on re-entry or disconnect. */
+  private _cancelResetTimer: ReturnType<typeof setTimeout> | null = null;
   private backend: AcpBackend | null = null;
   private initializeResponse: AcpResponse | null = null;
   private workingDir: string = process.cwd();
@@ -1165,6 +1167,12 @@ export class AcpConnection {
    * request, ensuring no leftover fragments leak into subsequent responses.
    */
   cancelPendingRequests(): void {
+    // Clear any previous safety timer to avoid stale resets racing with this call.
+    if (this._cancelResetTimer) {
+      clearTimeout(this._cancelResetTimer);
+      this._cancelResetTimer = null;
+    }
+
     this._isCancelled = true;
     for (const [id, request] of this.pendingRequests) {
       this._cancelledRequestIds.add(id);
@@ -1184,11 +1192,12 @@ export class AcpConnection {
     // Safety timeout: if the backend never responds to the cancelled request
     // (e.g. it crashed or doesn't support notifications/cancelled), reset after 5s.
     if (this._cancelledRequestIds.size > 0) {
-      setTimeout(() => {
+      this._cancelResetTimer = setTimeout(() => {
         if (this._isCancelled) {
           this._cancelledRequestIds.clear();
           this._isCancelled = false;
         }
+        this._cancelResetTimer = null;
       }, 5000);
     }
   }
@@ -1200,6 +1209,10 @@ export class AcpConnection {
     this.pendingRequests.clear();
     this._cancelledRequestIds.clear();
     this._isCancelled = false;
+    if (this._cancelResetTimer) {
+      clearTimeout(this._cancelResetTimer);
+      this._cancelResetTimer = null;
+    }
     this.sessionId = null;
     this.isInitialized = false;
     this.isSetupComplete = false;
