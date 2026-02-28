@@ -376,6 +376,34 @@ body,
     white-space: nowrap;
     font-weight: 500;
   }
+
+  /* Conversation header pills on mobile */
+  .agent-mode-compact-pill {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+  }
+
+  .agent-mode-compact-pill .arco-btn-content {
+    line-height: 1;
+  }
+
+  .agent-mode-compact-pill--readonly,
+  .agent-mode-compact-pill--readonly:hover,
+  .agent-mode-compact-pill--readonly:active,
+  .agent-mode-compact-pill--readonly:focus,
+  .agent-mode-compact-pill--readonly:focus-visible {
+    cursor: default !important;
+    pointer-events: none !important;
+    background: var(--color-fill-2) !important;
+    border-color: var(--border-base) !important;
+    box-shadow: none !important;
+  }
+
+  .chat-header-cron-pill {
+    margin-right: 4px;
+  }
 }
 
 @keyframes bg-animate {

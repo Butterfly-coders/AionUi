@@ -55,6 +55,8 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
   const canSwitchMode = supportsModeSwitch(backend) && (conversationId || onModeSelect);
+  // Mobile conversation header agent pill is display-only by design.
+  const canInteract = canSwitchMode && !(compact && compactLabelType === 'agent');
 
   // When initialMode prop changes (e.g. agent switch on Guid page), update local state.
   // Validate against available modes to handle backends with non-standard default
@@ -178,21 +180,31 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({ backend, agentNam
   if (compact) {
     const legacyCompactBehavior = !showLogoInCompact && compactLabelType === 'mode';
     const compactLabel = compactLabelType === 'agent' ? agentName || backend || 'Agent' : canSwitchMode ? getCurrentModeLabel() : agentName || backend || 'Agent';
-    if (!canSwitchMode && legacyCompactBehavior) {
+    if (!canInteract && legacyCompactBehavior) {
       return null;
     }
 
     const compactContent = (
-      <Button className='sendbox-model-btn' shape='round' style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+      <Button
+        className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
+        shape='round'
+        size='small'
+        onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}
+        style={{
+          opacity: isLoading ? 0.6 : 1,
+          transition: 'opacity 0.2s',
+          cursor: canInteract ? 'pointer' : 'default',
+        }}
+      >
         <span className='flex items-center gap-6px min-w-0 leading-none'>
           {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
           <span className='block truncate leading-none'>{compactLabel}</span>
-          {canSwitchMode && <Down size={12} className='text-t-tertiary shrink-0' />}
+          {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
         </span>
       </Button>
     );
 
-    if (!canSwitchMode) {
+    if (!canInteract) {
       return compactContent;
     }
 
