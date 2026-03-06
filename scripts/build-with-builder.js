@@ -497,6 +497,23 @@ try {
     // Multi-arch builds: Architecture detection not supported yet
   }
 
+  if (process.platform === 'win32' && builderArgs.includes('--win')) {
+    const winUnpackedDir = path.join(outDir, 'win-unpacked');
+    let cleaned = tryRemoveDir(winUnpackedDir);
+    if (!cleaned) {
+      const aionRunning = isProcessRunningWindows('AionUi.exe');
+      const electronRunning = isProcessRunningWindows('electron.exe');
+      if (aionRunning || electronRunning) {
+        console.log('⚠️  Detected running AionUi/Electron process. Attempting to close...');
+        killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+        cleaned = tryRemoveDir(winUnpackedDir);
+        if (!cleaned) {
+          console.log('⚠️  Directory still locked. Please close any running AionUi/Electron processes and retry.');
+        }
+      }
+    }
+  }
+
   if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
     cleanupWindowsPackOutput();
   }
