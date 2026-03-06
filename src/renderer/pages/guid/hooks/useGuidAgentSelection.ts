@@ -252,53 +252,49 @@ export const useGuidAgentSelection = ({ modelList, isGoogleAuth, localeKey }: Us
     };
   }, []);
 
-  // Probe Codex model info on first selection so the Guid page can show
-  // the real account-scoped models before the first conversation starts.
+  // Probe model info for ACP backends when no cached data exists.
+  // Spawns a temporary ACP connection to fetch real model list before the first conversation.
+  // Skips Gemini (has its own model selector) and backends that already have cached data.
   useEffect(() => {
-    if (selectedAgentKey !== 'codex') return;
-    if (probedModelBackendsRef.current.has('codex')) return;
+    const backend = selectedAgentKey.startsWith('custom:') ? 'custom' : selectedAgentKey;
+    // Skip non-ACP backends and already-probed/cached backends
+    if (backend === 'gemini') return;
+    if (probedModelBackendsRef.current.has(backend)) return;
+    if (acpCachedModels[backend]?.availableModels?.length) return;
 
     let cancelled = false;
-    probedModelBackendsRef.current.add('codex');
+    probedModelBackendsRef.current.add(backend);
 
     ipcBridge.acpConversation.probeModelInfo
-      .invoke({ backend: 'codex' })
+      .invoke({ backend: backend as AcpBackend })
       .then(async (result) => {
         if (cancelled) return;
         const modelInfo = result.success ? result.data?.modelInfo : null;
         if (!modelInfo?.availableModels?.length) {
-          probedModelBackendsRef.current.delete('codex');
+          probedModelBackendsRef.current.delete(backend);
           return;
         }
-
-        console.log('[Guid][codex] Probed model info:', modelInfo);
 
         const cached = (await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) || {};
         if (cancelled) return;
 
-        const nextCachedModels = {
-          ...cached,
-          codex: modelInfo,
-        };
-
         setAcpCachedModels((prev) => ({
           ...prev,
-          codex: modelInfo,
+          [backend]: modelInfo,
         }));
 
-        await ConfigStorage.set('acp.cachedModels', nextCachedModels).catch((error) => {
-          console.error('Failed to save probed ACP model info:', error);
+        await ConfigStorage.set('acp.cachedModels', { ...cached, [backend]: modelInfo }).catch(() => {
+          // Silent — best-effort cache
         });
       })
-      .catch((error) => {
-        probedModelBackendsRef.current.delete('codex');
-        console.warn('[Guid][codex] Failed to probe model info:', error);
+      .catch(() => {
+        probedModelBackendsRef.current.delete(backend);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [selectedAgentKey]);
+  }, [selectedAgentKey, acpCachedModels]);
 
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
