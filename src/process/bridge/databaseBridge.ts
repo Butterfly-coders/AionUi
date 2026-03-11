@@ -69,10 +69,27 @@ export function initDatabaseBridge(): void {
     try {
       const db = getDatabase();
       const result = db.getApiConfig();
-      return Promise.resolve(result.success ? result.data ?? null : null);
+      return Promise.resolve(result.success ? (result.data ?? null) : null);
     } catch (error) {
       console.error('[DatabaseBridge] Error getting API config:', error);
       return Promise.resolve(null);
+    }
+  });
+
+  ipcBridge.database.updateApiEnabled.provider(({ enabled }) => {
+    try {
+      const db = getDatabase();
+      const result = db.updateApiEnabled(enabled);
+      return Promise.resolve({
+        success: !!result.success,
+        error: result.success ? undefined : result.error,
+      });
+    } catch (error) {
+      console.error('[DatabaseBridge] Error updating API enabled:', error);
+      return Promise.resolve({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   });
 

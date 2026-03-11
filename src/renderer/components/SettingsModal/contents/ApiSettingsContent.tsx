@@ -201,6 +201,7 @@ const ApiSettingsContent: React.FC = () => {
   const [headers, setHeaders] = useState<HeaderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
   const [webuiStatus, setWebuiStatus] = useState<IWebUIStatus | null>(null);
 
   const [cliOptions, setCliOptions] = useState<CliOption[]>([]);
@@ -484,6 +485,33 @@ const ApiSettingsContent: React.FC = () => {
     }
   }, [callbackEnabled, config, headers, loadApiConfig]);
 
+  const handleEnabledChange = useCallback(
+    async (checked: boolean) => {
+      const previousEnabled = !!config.enabled;
+      setConfig((prev) => ({ ...prev, enabled: checked }));
+      setToggleLoading(true);
+
+      try {
+        const result = await ipcBridge.database.updateApiEnabled.invoke({ enabled: checked });
+        if (result.success) {
+          Message.success(checked ? 'HTTP API 已开启' : 'HTTP API 已关闭');
+          await loadApiConfig();
+          return;
+        }
+
+        setConfig((prev) => ({ ...prev, enabled: previousEnabled }));
+        Message.error(`切换失败: ${result.error || '未知错误'}`);
+      } catch (error) {
+        console.error('[ApiSettings] Toggle API enabled error:', error);
+        setConfig((prev) => ({ ...prev, enabled: previousEnabled }));
+        Message.error('切换 API 开关失败');
+      } finally {
+        setToggleLoading(false);
+      }
+    },
+    [config.enabled, loadApiConfig]
+  );
+
   const handleOpenDocs = useCallback(() => {
     if (!canDirectAccessDocs) {
       Message.warning('请先启用 WebUI，再访问 Swagger 文档');
@@ -524,7 +552,7 @@ const ApiSettingsContent: React.FC = () => {
       </div>
 
       <PreferenceRow label='启用 HTTP API' description='开启后可通过 /api/v1/conversation/* 访问本地能力'>
-        <Switch checked={!!config.enabled} onChange={(checked) => setConfig((prev) => ({ ...prev, enabled: checked }))} />
+        <Switch checked={!!config.enabled} loading={toggleLoading} disabled={toggleLoading} onChange={handleEnabledChange} />
       </PreferenceRow>
 
       <div className='border-t border-border-secondary my-16px' />
@@ -636,7 +664,7 @@ const ApiSettingsContent: React.FC = () => {
           </div>
 
           <div>
-            <label className='text-13px text-t-primary mb-6px block'>工作空间 (workspace)</label>
+            <label className='text-13px text-t-primary mb-6px block'>工作空间 (workspace，可选)</label>
             <Input value={workspace} onChange={setWorkspace} allowClear placeholder='留空则使用 AionUi 默认工作空间' />
           </div>
         </div>

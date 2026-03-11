@@ -69,7 +69,11 @@ export function buildOpenApiSpec(): Record<string, any> {
                 useModel: 'gpt-4o-mini',
               },
             },
-            workspace: { type: 'string', example: 'E:/code/project' },
+            workspace: {
+              type: 'string',
+              example: 'E:/code/project',
+              description: 'Optional. When omitted, AionUi uses its default workspace behavior.',
+            },
             backend: {
               type: 'string',
               example: 'claude',

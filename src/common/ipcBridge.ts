@@ -336,6 +336,7 @@ export const database = {
   getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { page?: number; pageSize?: number }>('database.get-user-conversations'),
   getApiConfig: bridge.buildProvider<import('@/common/storage').IApiConfig | null, void>('database.get-api-config'),
+  updateApiEnabled: bridge.buildProvider<{ success: boolean; error?: string }, { enabled: boolean }>('database.update-api-enabled'),
   saveApiConfig: bridge.buildProvider<{ success: boolean; error?: string }, Partial<import('@/common/storage').IApiConfig>>('database.save-api-config'),
 };
 
