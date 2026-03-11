@@ -1000,13 +1000,93 @@ const migration_v17: IMigration = {
 };
 
 /**
+ * Migration v17 -> v18: Add JS filter config for callback payloads
+ */
+const migration_v18: IMigration = {
+  version: 18,
+  name: 'Add callback JS filter config',
+  up: (db) => {
+    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'api_config'").get() as { name: string } | undefined;
+
+    if (!tableExists) {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS api_config (
+          id INTEGER PRIMARY KEY CHECK(id = 1),
+          enabled INTEGER NOT NULL DEFAULT 0,
+          auth_token TEXT,
+          callback_enabled INTEGER NOT NULL DEFAULT 0,
+          callback_url TEXT,
+          callback_method TEXT DEFAULT 'POST' CHECK(callback_method IN ('POST', 'GET', 'PUT')),
+          callback_headers TEXT,
+          callback_body TEXT,
+          js_filter_enabled INTEGER NOT NULL DEFAULT 0,
+          js_filter_script TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+      `);
+      console.log('[Migration v18] Created api_config table with JS filter columns');
+      return;
+    }
+
+    const tableInfo = db.prepare('PRAGMA table_info(api_config)').all() as Array<{ name: string }>;
+    const hasJsFilterEnabled = tableInfo.some((col) => col.name === 'js_filter_enabled');
+    const hasJsFilterScript = tableInfo.some((col) => col.name === 'js_filter_script');
+
+    if (!hasJsFilterEnabled) {
+      db.exec(`
+        ALTER TABLE api_config ADD COLUMN js_filter_enabled INTEGER NOT NULL DEFAULT 0;
+      `);
+    }
+
+    if (!hasJsFilterScript) {
+      db.exec(`
+        ALTER TABLE api_config ADD COLUMN js_filter_script TEXT;
+      `);
+    }
+
+    console.log('[Migration v18] Added JS filter config to api_config');
+  },
+  down: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS api_config_rollback (
+        id INTEGER PRIMARY KEY CHECK(id = 1),
+        enabled INTEGER NOT NULL DEFAULT 0,
+        auth_token TEXT,
+        callback_enabled INTEGER NOT NULL DEFAULT 0,
+        callback_url TEXT,
+        callback_method TEXT DEFAULT 'POST' CHECK(callback_method IN ('POST', 'GET', 'PUT')),
+        callback_headers TEXT,
+        callback_body TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      INSERT INTO api_config_rollback (
+        id, enabled, auth_token, callback_enabled, callback_url,
+        callback_method, callback_headers, callback_body, created_at, updated_at
+      )
+      SELECT
+        id, enabled, auth_token, callback_enabled, callback_url,
+        callback_method, callback_headers, callback_body, created_at, updated_at
+      FROM api_config;
+
+      DROP TABLE api_config;
+      ALTER TABLE api_config_rollback RENAME TO api_config;
+    `);
+
+    console.log('[Migration v18] Rolled back: Removed JS filter config from api_config');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
 export const ALL_MIGRATIONS: IMigration[] = [
   migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6,
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
-  migration_v13, migration_v14, migration_v15, migration_v16, migration_v17,
+  migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
 ];
 
 /**

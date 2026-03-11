@@ -1155,6 +1155,8 @@ export class AionUIDatabase {
         callbackMethod: row.callback_method || 'POST',
         callbackHeaders: row.callback_headers ? JSON.parse(row.callback_headers) : undefined,
         callbackBody: row.callback_body ?? undefined,
+        jsFilterEnabled: row.js_filter_enabled === 1,
+        jsFilterScript: row.js_filter_script ?? undefined,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
@@ -1175,9 +1177,10 @@ export class AionUIDatabase {
       const stmt = this.db.prepare(`
         INSERT INTO api_config (
           id, enabled, auth_token, callback_enabled, callback_url,
-          callback_method, callback_headers, callback_body, created_at, updated_at
+          callback_method, callback_headers, callback_body, js_filter_enabled,
+          js_filter_script, created_at, updated_at
         )
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           enabled = excluded.enabled,
           auth_token = excluded.auth_token,
@@ -1186,10 +1189,12 @@ export class AionUIDatabase {
           callback_method = excluded.callback_method,
           callback_headers = excluded.callback_headers,
           callback_body = excluded.callback_body,
+          js_filter_enabled = excluded.js_filter_enabled,
+          js_filter_script = excluded.js_filter_script,
           updated_at = excluded.updated_at
       `);
 
-      stmt.run(config.enabled ? 1 : 0, config.authToken ?? null, config.callbackEnabled ? 1 : 0, config.callbackUrl ?? null, config.callbackMethod ?? 'POST', config.callbackHeaders ? JSON.stringify(config.callbackHeaders) : null, config.callbackBody ?? null, config.createdAt ?? now, now);
+      stmt.run(config.enabled ? 1 : 0, config.authToken ?? null, config.callbackEnabled ? 1 : 0, config.callbackUrl ?? null, config.callbackMethod ?? 'POST', config.callbackHeaders ? JSON.stringify(config.callbackHeaders) : null, config.callbackBody ?? null, config.jsFilterEnabled ? 1 : 0, config.jsFilterScript ?? null, config.createdAt ?? now, now);
 
       return { success: true, data: true };
     } catch (error: any) {

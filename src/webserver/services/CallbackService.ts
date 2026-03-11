@@ -4,7 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { DEFAULT_JS_FILTER_SCRIPT } from '@/common/apiCallback';
 import type { IApiConfig } from '@/common/storage';
+import { Script, createContext } from 'vm';
+
+type CallbackTemplateVariables = Record<string, unknown> & {
+  conversationHistory?: unknown;
+  lastMessage?: unknown;
+  model?: unknown;
+  sessionId?: unknown;
+  workspace?: unknown;
+};
 
 /**
  * Service for sending HTTP callbacks
@@ -34,6 +44,46 @@ export class CallbackService {
     return result;
   }
 
+  static createTemplateVariables(config: IApiConfig, variables: CallbackTemplateVariables): Record<string, unknown> {
+    return {
+      ...variables,
+      jsFitterStr: this.buildJsFitterStr(config, variables),
+    };
+  }
+
+  private static buildJsFitterStr(config: IApiConfig, variables: CallbackTemplateVariables): string {
+    if (!config.jsFilterEnabled) {
+      return '';
+    }
+
+    const scriptSource = config.jsFilterScript?.trim() || DEFAULT_JS_FILTER_SCRIPT;
+    const input = {
+      sessionId: typeof variables.sessionId === 'string' ? variables.sessionId : '',
+      workspace: typeof variables.workspace === 'string' ? variables.workspace : '',
+      model: variables.model ?? null,
+      lastMessage: variables.lastMessage ?? null,
+      conversationHistory: Array.isArray(variables.conversationHistory) ? variables.conversationHistory : [],
+    };
+
+    try {
+      const context = createContext({ input });
+      const script = new Script(`
+${scriptSource}
+
+if (typeof jsFilter !== 'function') {
+  throw new Error('Callback JS filter must define a jsFilter(input) function');
+}
+
+jsFilter(input);
+`);
+      const result = script.runInContext(context, { timeout: 1000 });
+      return typeof result === 'string' ? result : String(result ?? '');
+    } catch (error) {
+      console.error('[CallbackService] Failed to execute callback JS filter:', error);
+      return '';
+    }
+  }
+
   /**
    * Send HTTP callback request
    * 发送 HTTP 回调请求
@@ -44,10 +94,12 @@ export class CallbackService {
     }
 
     try {
+      const templateVariables = this.createTemplateVariables(config, variables);
+
       // 1. Prepare request body
       let body: string | undefined;
       if (config.callbackBody) {
-        body = this.replaceVariables(config.callbackBody, variables);
+        body = this.replaceVariables(config.callbackBody, templateVariables);
       }
 
       // 2. Prepare headers

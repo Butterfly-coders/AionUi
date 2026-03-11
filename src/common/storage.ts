@@ -132,6 +132,8 @@ export interface IApiConfig {
   callbackMethod: 'POST' | 'GET' | 'PUT';
   callbackHeaders?: Record<string, string>;
   callbackBody?: string;
+  jsFilterEnabled?: boolean;
+  jsFilterScript?: string;
   createdAt: number;
   updatedAt: number;
 }

@@ -7,6 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Input, Message, Select, Switch } from '@arco-design/web-react';
 import { Copy, Delete, Plus, Refresh } from '@icon-park/react';
+import { DEFAULT_CALLBACK_BODY, DEFAULT_JS_FILTER_SCRIPT } from '@/common/apiCallback';
 import { ipcBridge } from '@/common';
 import { ConfigStorage, type IApiConfig, type IProvider } from '@/common/storage';
 import { getAgentModes } from '@/renderer/constants/agentModes';
@@ -38,14 +39,6 @@ type CliModelOption = {
 };
 
 const DEFAULT_MESSAGE = 'Hello from AionUi API';
-const DEFAULT_CALLBACK_BODY = `{
-  "sessionId": "{{sessionId}}",
-  "workspace": "{{workspace}}",
-  "model": {{model}},
-  "lastMessage": {{lastMessage}},
-  "conversationHistory": {{conversationHistory}}
-}`;
-
 const PreferenceRow: React.FC<{
   label: string;
   description?: React.ReactNode;
@@ -197,6 +190,8 @@ const ApiSettingsContent: React.FC = () => {
     callbackMethod: 'POST',
     callbackHeaders: {},
     callbackBody: DEFAULT_CALLBACK_BODY,
+    jsFilterEnabled: false,
+    jsFilterScript: DEFAULT_JS_FILTER_SCRIPT,
   });
   const [headers, setHeaders] = useState<HeaderItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -225,6 +220,8 @@ const ApiSettingsContent: React.FC = () => {
           ...result,
           callbackEnabled: result.callbackEnabled ?? !!result.callbackUrl,
           callbackBody: result.callbackBody || DEFAULT_CALLBACK_BODY,
+          jsFilterEnabled: result.jsFilterEnabled ?? false,
+          jsFilterScript: result.jsFilterScript || DEFAULT_JS_FILTER_SCRIPT,
         });
         setHeaders(parseHeaders(result.callbackHeaders));
       } else {
@@ -232,6 +229,8 @@ const ApiSettingsContent: React.FC = () => {
           ...prev,
           callbackEnabled: false,
           callbackBody: DEFAULT_CALLBACK_BODY,
+          jsFilterEnabled: false,
+          jsFilterScript: DEFAULT_JS_FILTER_SCRIPT,
         }));
         setHeaders([]);
       }
@@ -421,6 +420,7 @@ const ApiSettingsContent: React.FC = () => {
   }, [webuiStatus?.localUrl]);
   const canDirectAccessDocs = !!webuiStatus?.running;
   const callbackEnabled = !!config.callbackEnabled;
+  const jsFilterEnabled = !!config.jsFilterEnabled;
 
   const handleGenerateToken = useCallback(() => {
     const token = generateApiToken();
@@ -468,6 +468,8 @@ const ApiSettingsContent: React.FC = () => {
         callbackEnabled,
         callbackHeaders: Object.keys(callbackHeaders).length ? callbackHeaders : undefined,
         callbackBody: config.callbackBody?.trim() ? config.callbackBody : DEFAULT_CALLBACK_BODY,
+        jsFilterEnabled,
+        jsFilterScript: config.jsFilterScript?.trim() ? config.jsFilterScript : DEFAULT_JS_FILTER_SCRIPT,
       });
 
       if (result.success) {
@@ -483,7 +485,7 @@ const ApiSettingsContent: React.FC = () => {
     } finally {
       setSaveLoading(false);
     }
-  }, [callbackEnabled, config, headers, loadApiConfig]);
+  }, [callbackEnabled, config, headers, jsFilterEnabled, loadApiConfig]);
 
   const handleEnabledChange = useCallback(
     async (checked: boolean) => {
@@ -625,7 +627,26 @@ const ApiSettingsContent: React.FC = () => {
               <label className='text-13px text-t-primary mb-6px block'>回调请求体 (JSON)</label>
               <Input.TextArea value={config.callbackBody || DEFAULT_CALLBACK_BODY} onChange={(value) => setConfig((prev) => ({ ...prev, callbackBody: value }))} style={{ minHeight: 180, fontFamily: 'monospace' }} />
               <div className='text-12px text-t-tertiary mt-4px'>
-                支持变量: {'{{sessionId}}'}, {'{{workspace}}'}, {'{{model}}'}, {'{{conversationHistory}}'}, {'{{lastMessage}}'}, {'{{status}}'}, {'{{state}}'}, {'{{detail}}'}, {'{{canSendMessage}}'}, {'{{runtime}}'}
+                支持变量: {'{{sessionId}}'}, {'{{workspace}}'}, {'{{model}}'}, {'{{conversationHistory}}'}, {'{{lastMessage}}'}, {'{{status}}'}, {'{{state}}'}, {'{{detail}}'}, {'{{canSendMessage}}'}, {'{{runtime}}'}, {'{{jsFitterStr}}'}
+              </div>
+            </div>
+
+            <div className='mb-12px'>
+              <PreferenceRow label='开启 JS 过滤' description='关闭时 {{jsFitterStr}} 默认为空字符串；开启后会执行下方 jsFilter(input) 并返回字符串'>
+                <Switch checked={jsFilterEnabled} onChange={(checked) => setConfig((prev) => ({ ...prev, jsFilterEnabled: checked }))} />
+              </PreferenceRow>
+            </div>
+
+            <div className='mb-12px'>
+              <div className='flex items-center justify-between mb-6px'>
+                <label className='text-13px text-t-primary'>JS 过滤脚本</label>
+                <Button size='mini' onClick={() => setConfig((prev) => ({ ...prev, jsFilterScript: DEFAULT_JS_FILTER_SCRIPT }))}>
+                  恢复示例
+                </Button>
+              </div>
+              <Input.TextArea value={config.jsFilterScript || DEFAULT_JS_FILTER_SCRIPT} onChange={(value) => setConfig((prev) => ({ ...prev, jsFilterScript: value }))} style={{ minHeight: 220, fontFamily: 'monospace' }} />
+              <div className='text-12px text-t-tertiary mt-4px'>
+                需要定义 <code>jsFilter(input)</code> 函数。默认入参包含 sessionId、workspace、model、lastMessage、conversationHistory，返回值会被写入 {'{{jsFitterStr}}'}。
               </div>
             </div>
           </>

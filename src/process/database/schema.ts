@@ -91,6 +91,8 @@ export function initSchema(db: Database.Database): void {
       callback_method TEXT DEFAULT 'POST' CHECK(callback_method IN ('POST', 'GET', 'PUT')),
       callback_headers TEXT,
       callback_body TEXT,
+      js_filter_enabled INTEGER NOT NULL DEFAULT 0,
+      js_filter_script TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -124,4 +126,4 @@ export function setDatabaseVersion(db: Database.Database, version: number): void
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 17;
+export const CURRENT_DB_VERSION = 18;
