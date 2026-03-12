@@ -15,6 +15,9 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ConversationTurnCompletionService } from '@process/services/ConversationTurnCompletionService';
 import { ipcBridge } from '@/common';
 
+const MAX_REASONING_CHARS = 32 * 1024;
+const TRUNCATED_REASONING_PREFIX = '[reasoning truncated, showing latest 32KB]\n';
+
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
   private deltaTimeout: NodeJS.Timeout | null = null;
@@ -73,7 +76,7 @@ export class CodexMessageProcessor {
       deltaText = msg.text ?? '';
     }
     // AGENT_REASONING_SECTION_BREAK 不添加内容，只是重置当前reasoning
-    this.currentReason = this.currentReason + deltaText;
+    this.currentReason = this.limitReasoning(this.currentReason + deltaText);
     this.messageEmitter.emitAndPersistMessage(
       {
         type: 'thought',
@@ -237,5 +240,13 @@ export class CodexMessageProcessor {
       clearTimeout(this.deltaTimeout);
       this.deltaTimeout = null;
     }
+  }
+
+  private limitReasoning(reasoning: string): string {
+    if (reasoning.length <= MAX_REASONING_CHARS) {
+      return reasoning;
+    }
+
+    return `${TRUNCATED_REASONING_PREFIX}${reasoning.slice(-MAX_REASONING_CHARS)}`;
   }
 }

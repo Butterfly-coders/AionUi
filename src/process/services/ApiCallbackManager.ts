@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IConversationTurnCompletedEvent } from '@/common/ipcBridge';
 import { getDatabase } from '@process/database';
 import { CallbackService } from '@/webserver/services/CallbackService';
+import { flushConversationMessages } from '@process/message';
 
 /**
  * API Callback Manager
@@ -50,11 +51,15 @@ export class ApiCallbackManager {
       return;
     }
 
+    await flushConversationMessages(event.sessionId);
+
     const messagesResult = db.getConversationMessages(event.sessionId, 0, 100);
     const messages = messagesResult.data || [];
+    const hasLastMessage = messages.some((message) => message.id === event.lastMessage.id);
+    const conversationHistory = hasLastMessage ? messages : [...messages, event.lastMessage];
 
     const variables = {
-      conversationHistory: messages,
+      conversationHistory,
       sessionId: event.sessionId,
       workspace: event.workspace,
       model: event.model,

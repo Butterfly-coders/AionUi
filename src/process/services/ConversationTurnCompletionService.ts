@@ -10,6 +10,7 @@ import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import WorkerManage from '@process/WorkerManage';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { flushConversationMessages } from '@process/message';
 
 export type ConversationStatusValue = 'pending' | 'running' | 'finished';
 export type ConversationRuntimeState = 'ai_generating' | 'ai_waiting_input' | 'ai_waiting_confirmation' | 'initializing' | 'stopped' | 'error' | 'unknown';
@@ -46,6 +47,7 @@ export interface ConversationStatusSnapshot {
 
 const RETRY_COUNT = 20;
 const RETRY_DELAY_MS = 100;
+const EMITTED_KEY_TTL_MS = 60 * 60 * 1000;
 
 const isErrorMessage = (message: StatusMessage | null): boolean => {
   if (!message) return false;
@@ -215,7 +217,7 @@ const sleep = (ms: number): Promise<void> =>
 
 export class ConversationTurnCompletionService {
   private static instance: ConversationTurnCompletionService | null = null;
-  private readonly emittedKeys = new Map<string, string>();
+  private readonly emittedKeys = new Map<string, { key: string; timestamp: number }>();
   private readonly inFlight = new Map<string, Promise<void>>();
 
   static getInstance(): ConversationTurnCompletionService {
@@ -242,6 +244,8 @@ export class ConversationTurnCompletionService {
   }
 
   private async settleAndEmit(sessionId: string): Promise<void> {
+    await flushConversationMessages(sessionId);
+
     for (let attempt = 0; attempt < RETRY_COUNT; attempt += 1) {
       const snapshot = getConversationStatusSnapshot(sessionId);
       if (!snapshot) {
@@ -251,11 +255,13 @@ export class ConversationTurnCompletionService {
       if (this.isEligible(snapshot)) {
         const event = this.buildEvent(snapshot);
         const emittedKey = `${event.lastMessage.id || event.lastMessage.createdAt}:${event.state}`;
-        if (this.emittedKeys.get(sessionId) === emittedKey) {
+        const existing = this.emittedKeys.get(sessionId);
+        if (existing?.key === emittedKey) {
           return;
         }
 
-        this.emittedKeys.set(sessionId, emittedKey);
+        this.pruneEmittedKeys();
+        this.emittedKeys.set(sessionId, { key: emittedKey, timestamp: Date.now() });
         ipcBridge.conversation.turnCompleted.emit(event);
         return;
       }
@@ -301,5 +307,13 @@ export class ConversationTurnCompletionService {
       model: extractModelInfoFromConversation(snapshot.conversation),
       lastMessage: formattedLastMessage,
     };
+  }
+
+  private pruneEmittedKeys(now: number = Date.now()): void {
+    for (const [sessionId, emitted] of this.emittedKeys) {
+      if (now - emitted.timestamp > EMITTED_KEY_TTL_MS) {
+        this.emittedKeys.delete(sessionId);
+      }
+    }
   }
 }
