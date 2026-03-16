@@ -88,7 +88,10 @@ jsFilter(input);
    * Send HTTP callback request
    * 发送 HTTP 回调请求
    */
-  static async sendCallback(config: IApiConfig, variables: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+  static async sendCallback(
+    config: IApiConfig,
+    variables: Record<string, any>
+  ): Promise<{ success: boolean; error?: string }> {
     if (!config.callbackEnabled || !config.callbackUrl) {
       return { success: false, error: 'Callback URL not configured' };
     }
