@@ -573,6 +573,7 @@ const ApiSettingsContent: React.FC = () => {
 
       const result = await ipcBridge.database.saveApiConfig.invoke({
         ...config,
+        authToken: config.authToken?.trim() || undefined,
         callbackEnabled,
         callbackHeaders: Object.keys(callbackHeaders).length ? callbackHeaders : undefined,
         callbackBody: config.callbackBody?.trim() ? config.callbackBody : DEFAULT_CALLBACK_BODY,
@@ -681,7 +682,12 @@ const ApiSettingsContent: React.FC = () => {
       <div className='mb-20px'>
         <label className='text-14px text-t-primary mb-8px block'>API Token</label>
         <div className='flex gap-8px'>
-          <Input value={config.authToken || ''} readOnly className='flex-1' placeholder='64 位随机 Token' />
+          <Input
+            value={config.authToken || ''}
+            onChange={(value) => setConfig((prev) => ({ ...prev, authToken: value }))}
+            className='flex-1'
+            placeholder='支持手动输入或生成 64 位随机 Token'
+          />
           <Button icon={<Refresh />} onClick={handleGenerateToken}>
             生成
           </Button>
