@@ -60,6 +60,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
         },
         code_inline: {
           backgroundColor: codeBackground,
+          borderWidth: 0,
           borderRadius: 4,
           paddingHorizontal: 5,
           paddingVertical: 1,
@@ -69,6 +70,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
         },
         fence: {
           backgroundColor: codeBackground,
+          borderWidth: 0,
           borderRadius: 8,
           padding: 12,
           marginVertical: 8,
@@ -78,6 +80,8 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
           color: text,
         },
         blockquote: {
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
           borderLeftWidth: 3,
           borderLeftColor: border,
           paddingLeft: 12,
@@ -91,6 +95,20 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
         link: {
           color: tint,
           textDecorationLine: 'underline',
+        },
+        code_block: {
+          backgroundColor: codeBackground,
+          borderWidth: 0,
+          borderRadius: 8,
+          padding: 12,
+          fontFamily: 'ui-monospace',
+          fontSize: 13,
+          lineHeight: 20,
+          color: text,
+        },
+        hr: {
+          backgroundColor: border,
+          height: 1,
         },
         paragraph: {
           marginVertical: 4,
