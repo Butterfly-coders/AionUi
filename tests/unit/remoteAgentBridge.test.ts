@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -98,10 +98,15 @@ vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
   },
 }));
 
+const wsMockBehavior = vi.hoisted(() => ({ shouldThrow: false, throwError: null as Error | null }));
+
 vi.mock('ws', () => ({
   default: class MockWebSocket {
     private handlers = new Map<string, (arg: unknown) => void>();
     constructor() {
+      if (wsMockBehavior.shouldThrow) {
+        throw wsMockBehavior.throwError ?? new SyntaxError('Invalid URL');
+      }
       // Simulate successful connection after a tick
       setTimeout(() => this.handlers.get('open')?.(undefined), 0);
     }
@@ -240,10 +245,30 @@ describe('remoteAgentBridge', () => {
   });
 
   describe('testConnection provider', () => {
+    afterEach(() => {
+      wsMockBehavior.shouldThrow = false;
+      wsMockBehavior.throwError = null;
+    });
+
     it('returns success on WebSocket open', async () => {
       const handler = providerMap.get('testConnection')!;
       const result = await handler({ url: 'wss://test', authType: 'none' });
       expect(result).toEqual({ success: true });
+    });
+
+    it('normalizes URL without protocol prefix (ELECTRON-F3)', async () => {
+      const handler = providerMap.get('testConnection')!;
+      // Bare host:port should not throw — ws:// is prepended automatically
+      const result = await handler({ url: '127.0.0.1:42617', authType: 'none' });
+      expect(result).toEqual({ success: true });
+    });
+
+    it('returns error when WebSocket constructor throws (ELECTRON-F4)', async () => {
+      wsMockBehavior.shouldThrow = true;
+      wsMockBehavior.throwError = new SyntaxError('Invalid URL: bad-url');
+      const handler = providerMap.get('testConnection')!;
+      const result = await handler({ url: 'wss://bad-url', authType: 'none' });
+      expect(result).toEqual({ success: false, error: 'Invalid URL: bad-url' });
     });
   });
 

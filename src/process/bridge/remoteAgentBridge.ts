@@ -71,8 +71,15 @@ export function initRemoteAgentBridge(): void {
 
   ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken }) => {
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      // Normalize URL: prepend ws:// when no protocol is provided so that
+      // bare host:port strings (e.g. "127.0.0.1:42617") don't cause a
+      // SyntaxError inside the WebSocket constructor.
+      const wsUrl = /^wss?:\/\//i.test(url) ? url : `ws://${url}`;
+
+      let ws: WebSocket | undefined;
+
       const timeout = setTimeout(() => {
-        ws.close();
+        ws?.close();
         resolve({ success: false, error: 'Connection timed out (10s)' });
       }, 10_000);
 
@@ -81,17 +88,23 @@ export function initRemoteAgentBridge(): void {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const ws = new WebSocket(url, { headers, handshakeTimeout: 10_000, rejectUnauthorized: false });
+      try {
+        ws = new WebSocket(wsUrl, { headers, handshakeTimeout: 10_000, rejectUnauthorized: false });
+      } catch (err) {
+        clearTimeout(timeout);
+        resolve({ success: false, error: err instanceof Error ? err.message : String(err) });
+        return;
+      }
 
       ws.on('open', () => {
         clearTimeout(timeout);
-        ws.close();
+        ws!.close();
         resolve({ success: true });
       });
 
       ws.on('error', (err) => {
         clearTimeout(timeout);
-        ws.close();
+        ws!.close();
         resolve({ success: false, error: err.message });
       });
     });
