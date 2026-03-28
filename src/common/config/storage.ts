@@ -392,6 +392,8 @@ export type TChatConversation =
         leaderAvatar?: string;
         /** User custom system prompt for dispatch */
         seedMessages?: string;
+        /** F-4.2: Model name if child uses a non-default model (only for dispatch_child) */
+        childModelName?: string;
         /** Enabled skills list */
         enabledSkills?: string[];
         /** Preset assistant ID */

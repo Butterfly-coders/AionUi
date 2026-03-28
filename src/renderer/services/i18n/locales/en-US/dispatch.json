@@ -56,6 +56,12 @@
   "taskPanel": {
     "noTranscript": "No transcript available yet",
     "refresh": "Refresh",
+    "sendPlaceholder": "Send message to {{name}}...",
+    "sendToChild": "Send",
+    "sendFailed": "Failed to send message",
+    "childAgent": "child agent",
+    "sendDisabled": "Cannot send message to a {{status}} task",
+    "userDirectMessage": "User sent a direct message to \"{{name}}\"",
     "status": {
       "pending": "Pending",
       "running": "Running",
@@ -86,6 +92,25 @@
     "saveSuccess": "Assistant saved successfully",
     "saveDuplicate": "An assistant with this name already exists",
     "saveError": "Failed to save assistant"
+  },
+  "childModel": {
+    "label": "Model",
+    "default": "Default"
+  },
+  "settings": {
+    "title": "Group Chat Settings",
+    "nameLabel": "Group Chat Name",
+    "namePlaceholder": "Enter group chat name",
+    "leaderAgentLabel": "Leader Agent",
+    "leaderAgentPlaceholder": "Select a leader agent",
+    "leaderAgentNone": "None (use default orchestrator)",
+    "seedMessagesLabel": "Seed Messages",
+    "seedMessagesPlaceholder": "Additional system instructions for the orchestrator",
+    "save": "Save",
+    "saveSuccess": "Settings saved",
+    "saveFailed": "Failed to save settings",
+    "leaderAgentDeleted": "This agent has been deleted",
+    "coldSwapNotice": "Changes take effect on the next message sent to the orchestrator."
   },
   "overview": {
     "title": "Task Overview",

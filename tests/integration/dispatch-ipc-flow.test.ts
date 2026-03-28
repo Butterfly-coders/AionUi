@@ -6,8 +6,8 @@
 
 /**
  * Integration tests for dispatchBridge IPC flow.
- * Tests the complete IPC chain for Phase 2b dispatch features.
- * Test IDs: INT-IPC-001 through INT-IPC-010.
+ * Tests the complete IPC chain for Phase 2b and Phase 4 dispatch features.
+ * Test IDs: INT-IPC-001 through INT-IPC-012.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -49,9 +49,22 @@ vi.mock('@/common', () => ({
           providerHandlers['saveTeammate'] = handler;
         },
       },
+      notifyParent: {
+        provider: (handler: (params: Record<string, unknown>) => Promise<unknown>) => {
+          providerHandlers['notifyParent'] = handler;
+        },
+      },
+      updateGroupChatSettings: {
+        provider: (handler: (params: Record<string, unknown>) => Promise<unknown>) => {
+          providerHandlers['updateGroupChatSettings'] = handler;
+        },
+      },
     },
     conversation: {
       listChanged: { emit: vi.fn() },
+    },
+    geminiConversation: {
+      responseStream: { emit: vi.fn() },
     },
   },
 }));
@@ -107,6 +120,10 @@ vi.mock('@process/utils/initStorage', () => ({
 vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
   mainWarn: vi.fn(),
+}));
+
+vi.mock('@process/utils/message', () => ({
+  addMessage: vi.fn(),
 }));
 
 import { initDispatchBridge } from '@process/bridge/dispatchBridge';
@@ -422,6 +439,257 @@ describe('Dispatch IPC Flow — Phase 2b Integration', () => {
 
       expect(infoResult.success).toBe(true);
       expect(infoResult.data.dispatcherName).toBe('Round Trip Chat');
+    });
+  });
+
+  // ========== Phase 4 IPC Tests ==========
+
+  // INT-IPC-007: notifyParent persists notification and emits to renderer
+  describe('INT-IPC-007: notifyParent handler (F-4.1)', () => {
+    it('persists notification message and emits dispatch_event', async () => {
+      const { addMessage: mockAddMessage } = await import('@process/utils/message');
+      const { ipcBridge: mockIpcBridge } = await import('@/common');
+
+      const result = (await providerHandlers['notifyParent']({
+        parentConversationId: 'parent-conv-1',
+        childSessionId: 'child-1',
+        childName: 'Agent Alpha',
+        userMessage: 'Hello from user',
+      })) as { success: boolean };
+
+      expect(result.success).toBe(true);
+
+      // Verify message was persisted
+      expect(mockAddMessage).toHaveBeenCalledWith(
+        'parent-conv-1',
+        expect.objectContaining({
+          type: 'dispatch_event',
+          position: 'left',
+          conversation_id: 'parent-conv-1',
+        }),
+      );
+
+      // Verify emit to renderer
+      expect(mockIpcBridge.geminiConversation.responseStream.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'dispatch_event',
+          conversation_id: 'parent-conv-1',
+        }),
+      );
+    });
+
+    it('truncates long user messages to 200 chars', async () => {
+      const { addMessage: mockAddMessage } = await import('@process/utils/message');
+      const longMessage = 'x'.repeat(300);
+
+      await providerHandlers['notifyParent']({
+        parentConversationId: 'parent-conv-1',
+        childSessionId: 'child-1',
+        childName: 'Agent Beta',
+        userMessage: longMessage,
+      });
+
+      // The notification content should contain the truncated message
+      const call = (mockAddMessage as ReturnType<typeof vi.fn>).mock.calls[0];
+      const content = call[1].content as { content: string };
+      expect(content.content).toContain('...');
+    });
+  });
+
+  // INT-IPC-008: updateGroupChatSettings updates conversation extra
+  describe('INT-IPC-008: updateGroupChatSettings handler (F-4.3)', () => {
+    it('updates group chat name in conversation', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'dispatch-1',
+        type: 'dispatch',
+        name: 'Old Name',
+        extra: { groupChatName: 'Old Name' },
+      });
+      const updateConversation = vi.fn(async () => {});
+      conversationService.updateConversation = updateConversation;
+
+      const result = (await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'dispatch-1',
+        groupChatName: 'New Name',
+      })) as { success: boolean };
+
+      expect(result.success).toBe(true);
+      expect(updateConversation).toHaveBeenCalledWith(
+        'dispatch-1',
+        expect.objectContaining({
+          name: 'New Name',
+          extra: expect.objectContaining({ groupChatName: 'New Name' }),
+        }),
+      );
+    });
+
+    it('updates leader agent with full snapshot', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'dispatch-2',
+        type: 'dispatch',
+        name: 'Test Chat',
+        extra: {},
+      });
+      const updateConversation = vi.fn(async () => {});
+      conversationService.updateConversation = updateConversation;
+
+      const result = (await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'dispatch-2',
+        leaderAgentId: 'leader-agent-1',
+      })) as { success: boolean };
+
+      expect(result.success).toBe(true);
+      expect(updateConversation).toHaveBeenCalledWith(
+        'dispatch-2',
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            leaderAgentId: 'leader-agent-1',
+            leaderPresetRules: 'You are a test leader agent',
+            leaderName: 'Test Leader',
+            leaderAvatar: 'avatar-url',
+          }),
+        }),
+      );
+    });
+
+    it('clears leader agent when empty string is passed', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'dispatch-3',
+        type: 'dispatch',
+        name: 'Test Chat',
+        extra: {
+          leaderAgentId: 'old-leader',
+          leaderPresetRules: 'old rules',
+          leaderName: 'Old Leader',
+          leaderAvatar: 'old-avatar',
+        },
+      });
+      const updateConversation = vi.fn(async () => {});
+      conversationService.updateConversation = updateConversation;
+
+      const result = (await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'dispatch-3',
+        leaderAgentId: '',
+      })) as { success: boolean };
+
+      expect(result.success).toBe(true);
+      expect(updateConversation).toHaveBeenCalledWith(
+        'dispatch-3',
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            leaderAgentId: undefined,
+            leaderPresetRules: undefined,
+            leaderName: undefined,
+            leaderAvatar: undefined,
+          }),
+        }),
+      );
+    });
+
+    it('returns error for non-dispatch conversation', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'gemini-1',
+        type: 'gemini',
+        name: 'Not Dispatch',
+        extra: {},
+      });
+
+      const result = (await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'gemini-1',
+        groupChatName: 'Test',
+      })) as { success: boolean; msg: string };
+
+      expect(result.success).toBe(false);
+      expect(result.msg).toContain('not a dispatch');
+    });
+
+    it('returns error when leader agent not found', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'dispatch-4',
+        type: 'dispatch',
+        name: 'Test',
+        extra: {},
+      });
+
+      const result = (await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'dispatch-4',
+        leaderAgentId: 'nonexistent-leader',
+      })) as { success: boolean; msg: string };
+
+      expect(result.success).toBe(false);
+      expect(result.msg).toContain('not found');
+    });
+
+    it('updates seed messages', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'dispatch-5',
+        type: 'dispatch',
+        name: 'Test Chat',
+        extra: {},
+      });
+      const updateConversation = vi.fn(async () => {});
+      conversationService.updateConversation = updateConversation;
+
+      const result = (await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'dispatch-5',
+        seedMessages: 'New seed instructions',
+      })) as { success: boolean };
+
+      expect(result.success).toBe(true);
+      expect(updateConversation).toHaveBeenCalledWith(
+        'dispatch-5',
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            seedMessages: 'New seed instructions',
+          }),
+        }),
+      );
+    });
+
+    it('emits listChanged after successful update', async () => {
+      conversationService.getConversation.mockResolvedValue({
+        id: 'dispatch-6',
+        type: 'dispatch',
+        name: 'Test Chat',
+        extra: {},
+      });
+      conversationService.updateConversation = vi.fn(async () => {});
+
+      const { ipcBridge: mockIpcBridge } = await import('@/common');
+
+      await providerHandlers['updateGroupChatSettings']({
+        conversationId: 'dispatch-6',
+        groupChatName: 'Updated Name',
+      });
+
+      expect(mockIpcBridge.conversation.listChanged.emit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: 'dispatch-6',
+          action: 'updated',
+          source: 'dispatch',
+        }),
+      );
+    });
+  });
+
+  // INT-IPC-009: notifyParent handles errors gracefully
+  describe('INT-IPC-009: notifyParent error handling', () => {
+    it('returns success=false on exception', async () => {
+      // Force addMessage to throw
+      const messageMod = await import('@process/utils/message');
+      (messageMod.addMessage as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error('DB write failed');
+      });
+
+      const result = (await providerHandlers['notifyParent']({
+        parentConversationId: 'parent-conv-1',
+        childSessionId: 'child-1',
+        childName: 'Agent Alpha',
+        userMessage: 'Test',
+      })) as { success: boolean; msg: string };
+
+      expect(result.success).toBe(false);
+      expect(result.msg).toContain('DB write failed');
     });
   });
 });

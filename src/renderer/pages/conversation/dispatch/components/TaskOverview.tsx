@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button } from '@arco-design/web-react';
+import { Button, Tag } from '@arco-design/web-react';
 import { Down, People, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -121,6 +121,11 @@ const TaskOverview: React.FC<TaskOverviewProps> = ({
                 )}
                 <span className='text-13px truncate flex-1 min-w-0'>{child.teammateName || child.title}</span>
                 <span className={classNames(styles.statusDot, statusInfo.className)} />
+                {child.modelName && (
+                  <Tag size='small' color='gray' className='flex-shrink-0 ml-4px text-11px'>
+                    {child.modelName}
+                  </Tag>
+                )}
                 <span className='text-11px text-t-secondary flex-shrink-0'>
                   {formatActivityTime(child.lastActivityAt)}
                 </span>

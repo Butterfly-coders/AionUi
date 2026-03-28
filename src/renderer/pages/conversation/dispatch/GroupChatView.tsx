@@ -8,12 +8,13 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/chat/sendbox';
 import { Alert, Button, Message, Tag } from '@arco-design/web-react';
-import { Close, Info } from '@icon-park/react';
+import { Close, Info, Setting } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { emitter } from '@/renderer/utils/emitter';
 
 import ChatLayout from '../components/ChatLayout';
+import GroupChatSettingsDrawer from './components/GroupChatSettingsDrawer';
 import SaveTeammateModal from './components/SaveTeammateModal';
 import TaskOverview from './components/TaskOverview';
 import GroupChatTimeline from './GroupChatTimeline';
@@ -38,6 +39,7 @@ const GroupChatView: React.FC<GroupChatViewProps> = ({ conversation }) => {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [selectedChildTaskId, setSelectedChildTaskId] = useState<string | null>(null);
   const [overviewCollapsed, setOverviewCollapsed] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [saveModalTarget, setSaveModalTarget] = useState<{
     childSessionId: string;
     name?: string;
@@ -47,6 +49,8 @@ const GroupChatView: React.FC<GroupChatViewProps> = ({ conversation }) => {
   const extra = conversation.extra as {
     groupChatName?: string;
     teammateConfig?: { avatar?: string };
+    leaderAgentId?: string;
+    seedMessages?: string;
   };
 
   const dispatcherName = info?.dispatcherName || extra.groupChatName || conversation.name;
@@ -153,10 +157,27 @@ const GroupChatView: React.FC<GroupChatViewProps> = ({ conversation }) => {
     [conversation.id, refreshInfo]
   );
 
-  const headerExtra = useMemo(() => {
-    if (activeChildCount === 0) return undefined;
-    return <Tag color='arcoblue'>{t('dispatch.header.taskCount', { count: activeChildCount })}</Tag>;
-  }, [activeChildCount, t]);
+  // F-4.3: Current settings for GroupChatSettingsDrawer
+  const currentSettings = useMemo(() => ({
+    groupChatName: extra.groupChatName,
+    leaderAgentId: info?.leaderAgentId,
+    seedMessages: info?.seedMessages,
+  }), [extra.groupChatName, info?.leaderAgentId, info?.seedMessages]);
+
+  const headerExtra = useMemo(() => (
+    <div className='flex items-center gap-8px'>
+      {activeChildCount > 0 && (
+        <Tag color='arcoblue'>{t('dispatch.header.taskCount', { count: activeChildCount })}</Tag>
+      )}
+      <Button
+        type='text'
+        size='small'
+        icon={<Setting theme='outline' size='16' />}
+        onClick={() => setSettingsVisible(true)}
+        aria-label={t('dispatch.settings.title')}
+      />
+    </div>
+  ), [activeChildCount, t]);
 
   // CF-3: Error state for group chat info fetch failure
   if (infoError) {
@@ -279,6 +300,15 @@ const GroupChatView: React.FC<GroupChatViewProps> = ({ conversation }) => {
           onSaved={handleTeammateSaved}
         />
       )}
+
+      {/* F-4.3: Group Chat Settings Drawer */}
+      <GroupChatSettingsDrawer
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        conversationId={conversation.id}
+        currentSettings={currentSettings}
+        onSaved={() => { refreshInfo(); }}
+      />
     </ChatLayout>
   );
 };

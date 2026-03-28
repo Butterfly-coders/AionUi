@@ -41,6 +41,11 @@ export type StartChildTaskParams = {
   title: string;
   /** Optional temporary teammate config */
   teammate?: TemporaryTeammateConfig;
+  /** F-4.2: Optional model override for child agent */
+  model?: {
+    providerId: string;
+    modelName: string;
+  };
 };
 
 /** Child task info (for listing/querying) */

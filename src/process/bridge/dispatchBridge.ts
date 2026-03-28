@@ -7,6 +7,7 @@
 // src/process/bridge/dispatchBridge.ts
 
 import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
@@ -157,6 +158,8 @@ export function initDispatchBridge(
       const extra = conversation.extra as {
         groupChatName?: string;
         pendingNotifications?: string[];
+        leaderAgentId?: string;
+        seedMessages?: string;
       };
 
       // Get child conversations from the database
@@ -173,6 +176,7 @@ export function initDispatchBridge(
           const childExtra = conv.extra as {
             dispatchTitle?: string;
             teammateConfig?: { name: string; avatar?: string };
+            childModelName?: string;
           };
           return {
             sessionId: conv.id,
@@ -182,6 +186,7 @@ export function initDispatchBridge(
             teammateAvatar: childExtra.teammateConfig?.avatar,
             createdAt: conv.createTime,
             lastActivityAt: conv.modifyTime,
+            modelName: childExtra.childModelName,
           };
         });
 
@@ -192,6 +197,8 @@ export function initDispatchBridge(
           dispatcherName: extra.groupChatName || conversation.name,
           children,
           pendingNotificationCount: extra.pendingNotifications?.length ?? 0,
+          leaderAgentId: extra.leaderAgentId,
+          seedMessages: extra.seedMessages,
         },
       };
     } catch (error) {
@@ -288,6 +295,117 @@ export function initDispatchBridge(
       return { success: true, data: { assistantId: newId } };
     } catch (error) {
       mainWarn('[DispatchBridge:saveTeammate]', 'ERROR: ' + String(error));
+      return { success: false, msg: String(error) };
+    }
+  });
+
+  // --- dispatch.notify-parent (F-4.1) ---
+  ipcBridge.dispatch.notifyParent.provider(async (params) => {
+    mainLog('[DispatchBridge:notifyParent]', 'received', params);
+    try {
+      const msgId = uuid();
+      const truncatedMsg = params.userMessage.length > 200 ? params.userMessage.slice(0, 200) + '...' : params.userMessage;
+      const notificationContent = `User sent a direct message to "${params.childName}": "${truncatedMsg}"`;
+
+      const notification = {
+        sourceSessionId: params.childSessionId,
+        sourceRole: 'user' as const,
+        displayName: 'System',
+        content: notificationContent,
+        messageType: 'system' as const,
+        timestamp: Date.now(),
+        childTaskId: params.childSessionId,
+      };
+
+      // Persist to parent conversation's message DB (same pattern as DispatchAgentManager.emitGroupChatEvent)
+      const { addMessage: addMsg } = await import('@process/utils/message');
+      const dbMessage = {
+        id: msgId,
+        type: 'dispatch_event',
+        position: 'left',
+        conversation_id: params.parentConversationId,
+        content: { ...notification },
+        createdAt: Date.now(),
+      } as unknown as TMessage;
+      addMsg(params.parentConversationId, dbMessage);
+
+      // Emit to renderer
+      ipcBridge.geminiConversation.responseStream.emit({
+        type: 'dispatch_event',
+        conversation_id: params.parentConversationId,
+        msg_id: msgId,
+        data: notification,
+      });
+
+      return { success: true };
+    } catch (error) {
+      mainWarn('[DispatchBridge:notifyParent]', 'ERROR: ' + String(error));
+      return { success: false, msg: String(error) };
+    }
+  });
+
+  // --- dispatch.update-group-chat-settings (F-4.3) ---
+  ipcBridge.dispatch.updateGroupChatSettings.provider(async (params) => {
+    mainLog('[DispatchBridge:updateSettings]', 'received', params);
+    try {
+      const conversation = await conversationService.getConversation(params.conversationId);
+      if (!conversation || conversation.type !== 'dispatch') {
+        return { success: false, msg: 'Conversation not found or not a dispatch type' };
+      }
+
+      const extra = { ...(conversation.extra as Record<string, unknown>) };
+
+      // Update group chat name
+      if (params.groupChatName !== undefined) {
+        extra.groupChatName = params.groupChatName;
+        conversation.name = params.groupChatName || conversation.name;
+      }
+
+      // Update leader agent
+      if (params.leaderAgentId !== undefined) {
+        if (params.leaderAgentId) {
+          const customAgents = ((await ProcessConfig.get('acp.customAgents')) || []) as Array<
+            Record<string, unknown> & { id: string; name: string; avatar?: string; context?: string }
+          >;
+          const leader = customAgents.find((a) => a.id === params.leaderAgentId);
+          if (leader) {
+            extra.leaderAgentId = leader.id;
+            extra.leaderPresetRules = leader.context;
+            extra.leaderName = leader.name;
+            extra.leaderAvatar = leader.avatar;
+          } else {
+            return { success: false, msg: 'Leader agent not found' };
+          }
+        } else {
+          // Clear leader
+          extra.leaderAgentId = undefined;
+          extra.leaderPresetRules = undefined;
+          extra.leaderName = undefined;
+          extra.leaderAvatar = undefined;
+        }
+      }
+
+      // Update seed messages
+      if (params.seedMessages !== undefined) {
+        extra.seedMessages = params.seedMessages || undefined;
+      }
+
+      // Persist
+      await conversationService.updateConversation(params.conversationId, {
+        name: conversation.name,
+        extra,
+      });
+
+      // Notify sidebar
+      ipcBridge.conversation.listChanged.emit({
+        conversationId: params.conversationId,
+        action: 'updated',
+        source: 'dispatch',
+      });
+
+      return { success: true };
+    } catch (error) {
+      mainWarn('[DispatchBridge:updateSettings]', 'ERROR: ' + String(error));
       return { success: false, msg: String(error) };
     }
   });

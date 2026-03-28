@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Modal, Spin, Tag } from '@arco-design/web-react';
-import { CheckOne, Close, CloseOne, People, Refresh } from '@icon-park/react';
+import { ipcBridge } from '@/common';
+import { uuid } from '@/common/utils';
+import { Button, Input, Message, Modal, Spin, Tag } from '@arco-design/web-react';
+import { CheckOne, Close, CloseOne, People, Refresh, SendOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,7 +38,7 @@ const getTagColor = (status: string): string => {
 const TaskPanel: React.FC<TaskPanelProps> = ({
   childTaskId,
   childInfo,
-  conversationId: _conversationId,
+  conversationId,
   onClose,
   onCancel,
   onTeammateSaved,
@@ -44,8 +46,11 @@ const TaskPanel: React.FC<TaskPanelProps> = ({
   const { t } = useTranslation();
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [sendValue, setSendValue] = useState('');
+  const [sendingToChild, setSendingToChild] = useState(false);
 
   const isRunning = childInfo.status === 'running' || childInfo.status === 'pending';
+  const canSend = childInfo.status === 'running' || childInfo.status === 'idle';
   const { transcript, isLoading, error, refresh } = useTaskPanelTranscript(childTaskId, isRunning);
   const { isSaved, recheck: recheckSaved } = useIsSavedTeammate(childInfo.teammateName);
   const hasTeammateConfig = Boolean(childInfo.teammateName);
@@ -67,6 +72,36 @@ const TaskPanel: React.FC<TaskPanelProps> = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  // F-4.1: Send direct message to child agent
+  const handleSendToChild = useCallback(async () => {
+    if (!sendValue.trim()) return;
+    setSendingToChild(true);
+    try {
+      await ipcBridge.conversation.sendMessage.invoke({
+        input: sendValue,
+        msg_id: uuid(),
+        conversation_id: childTaskId,
+      });
+      // Notify parent dispatcher
+      await ipcBridge.dispatch.notifyParent.invoke({
+        parentConversationId: conversationId,
+        childSessionId: childTaskId,
+        childName: childInfo.teammateName || t('dispatch.taskPanel.childAgent'),
+        userMessage: sendValue,
+      });
+      setSendValue('');
+      refresh();
+    } catch (err) {
+      if (err instanceof Error) {
+        Message.error(err.message);
+      } else {
+        Message.error(t('dispatch.taskPanel.sendFailed'));
+      }
+    } finally {
+      setSendingToChild(false);
+    }
+  }, [sendValue, childTaskId, conversationId, childInfo.teammateName, childInfo.title, refresh, t]);
 
   const handleCancel = useCallback(() => {
     const title = childInfo.title || 'task';
@@ -155,6 +190,41 @@ const TaskPanel: React.FC<TaskPanelProps> = ({
         )}
         <div ref={transcriptEndRef} />
       </div>
+
+      {/* F-4.1: SendBox for direct user-to-child messaging */}
+      {canSend && (
+        <div
+          className='px-16px py-8px border-t border-t-solid'
+          style={{ borderColor: 'var(--color-border)' }}
+        >
+          <Input.TextArea
+            placeholder={t('dispatch.taskPanel.sendPlaceholder', { name: childInfo.teammateName || childInfo.title })}
+            value={sendValue}
+            onChange={setSendValue}
+            onPressEnter={(e) => {
+              if (!e.shiftKey) {
+                e.preventDefault();
+                void handleSendToChild();
+              }
+            }}
+            disabled={sendingToChild}
+            autoSize={{ minRows: 1, maxRows: 4 }}
+            aria-label={t('dispatch.taskPanel.sendPlaceholder', { name: childInfo.teammateName || childInfo.title })}
+          />
+          <div className='flex justify-end mt-4px'>
+            <Button
+              type='primary'
+              size='small'
+              onClick={() => void handleSendToChild()}
+              loading={sendingToChild}
+              disabled={!sendValue.trim()}
+              icon={<SendOne theme='outline' size='14' />}
+            >
+              {t('dispatch.taskPanel.sendToChild')}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div

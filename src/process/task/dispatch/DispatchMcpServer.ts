@@ -76,6 +76,16 @@ export class DispatchMcpServer {
           };
         }
 
+        // F-4.2: Parse model override if provided
+        if (args.model && typeof args.model === 'object') {
+          const m = args.model as Record<string, unknown>;
+          const providerId = String(m.provider_id ?? '').trim();
+          const modelName = String(m.model_name ?? '').trim();
+          if (providerId && modelName) {
+            params.model = { providerId, modelName };
+          }
+        }
+
         const sessionId = await this.handler.startChildSession(params);
         const children = await this.handler.listChildren();
         const existingList = children.map((c) => `- ${c.title} (${c.sessionId}): ${c.status}`).join('\n');
@@ -209,6 +219,22 @@ export class DispatchMcpServer {
                   description: 'System instructions for the child agent',
                 },
               },
+            },
+            model: {
+              type: 'object',
+              description:
+                'Optional model override for this child agent. Omit to use the default dispatcher model.',
+              properties: {
+                provider_id: {
+                  type: 'string',
+                  description: 'Provider ID from the configured model list',
+                },
+                model_name: {
+                  type: 'string',
+                  description: 'Model name (e.g., "gemini-2.5-pro", "gemini-2.0-flash")',
+                },
+              },
+              required: ['provider_id', 'model_name'],
             },
           },
           required: ['prompt', 'title'],

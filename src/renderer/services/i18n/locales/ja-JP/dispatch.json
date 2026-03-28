@@ -56,6 +56,12 @@
   "taskPanel": {
     "noTranscript": "トランスクリプトはまだありません",
     "refresh": "更新",
+    "sendPlaceholder": "{{name}} にメッセージを送信...",
+    "sendToChild": "送信",
+    "sendFailed": "メッセージの送信に失敗しました",
+    "childAgent": "子エージェント",
+    "sendDisabled": "{{status}} 状態のタスクにはメッセージを送信できません",
+    "userDirectMessage": "ユーザーが「{{name}}」にダイレクトメッセージを送信しました",
     "status": {
       "pending": "保留中",
       "running": "実行中",
@@ -86,6 +92,25 @@
     "saveSuccess": "アシスタントを保存しました",
     "saveDuplicate": "同じ名前のアシスタントが既に存在します",
     "saveError": "アシスタントの保存に失敗しました"
+  },
+  "childModel": {
+    "label": "モデル",
+    "default": "デフォルト"
+  },
+  "settings": {
+    "title": "グループチャット設定",
+    "nameLabel": "グループチャット名",
+    "namePlaceholder": "グループチャット名を入力",
+    "leaderAgentLabel": "リーダーエージェント",
+    "leaderAgentPlaceholder": "リーダーエージェントを選択",
+    "leaderAgentNone": "なし（デフォルトオーケストレーターを使用）",
+    "seedMessagesLabel": "シードメッセージ",
+    "seedMessagesPlaceholder": "オーケストレーターへの追加システム指示",
+    "save": "保存",
+    "saveSuccess": "設定を保存しました",
+    "saveFailed": "設定の保存に失敗しました",
+    "leaderAgentDeleted": "このエージェントは削除されました",
+    "coldSwapNotice": "変更はオーケストレーターへの次のメッセージ送信時に有効になります。"
   },
   "overview": {
     "title": "タスク概要",

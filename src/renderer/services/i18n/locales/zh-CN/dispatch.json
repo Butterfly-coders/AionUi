@@ -56,6 +56,12 @@
   "taskPanel": {
     "noTranscript": "暂无对话记录",
     "refresh": "刷新",
+    "sendPlaceholder": "发送消息给 {{name}}...",
+    "sendToChild": "发送",
+    "sendFailed": "发送消息失败",
+    "childAgent": "子代理",
+    "sendDisabled": "无法向 {{status}} 状态的任务发送消息",
+    "userDirectMessage": "用户向「{{name}}」发送了直接消息",
     "status": {
       "pending": "等待中",
       "running": "运行中",
@@ -86,6 +92,25 @@
     "saveSuccess": "助手保存成功",
     "saveDuplicate": "已存在同名助手",
     "saveError": "保存助手失败"
+  },
+  "childModel": {
+    "label": "模型",
+    "default": "默认"
+  },
+  "settings": {
+    "title": "群聊设置",
+    "nameLabel": "群聊名称",
+    "namePlaceholder": "输入群聊名称",
+    "leaderAgentLabel": "领导 Agent",
+    "leaderAgentPlaceholder": "选择一个领导 Agent",
+    "leaderAgentNone": "无（使用默认调度器）",
+    "seedMessagesLabel": "种子消息",
+    "seedMessagesPlaceholder": "为调度器添加额外的系统指令",
+    "save": "保存",
+    "saveSuccess": "设置已保存",
+    "saveFailed": "保存设置失败",
+    "leaderAgentDeleted": "该 Agent 已被删除",
+    "coldSwapNotice": "更改将在下一条发送给协调者的消息时生效。"
   },
   "overview": {
     "title": "任务概览",

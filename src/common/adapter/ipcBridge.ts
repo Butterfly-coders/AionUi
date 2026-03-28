@@ -932,8 +932,13 @@ export const dispatch = {
         teammateAvatar?: string;
         createdAt: number;
         lastActivityAt: number;
+        /** F-4.2: Model name if child uses a non-default model */
+        modelName?: string;
       }>;
       pendingNotificationCount: number;
+      /** F-4.3: Current settings for GroupChatSettingsDrawer */
+      leaderAgentId?: string;
+      seedMessages?: string;
     }>,
     { conversationId: string }
   >('dispatch.get-group-chat-info'),
@@ -972,6 +977,28 @@ export const dispatch = {
       presetRules?: string;
     }
   >('dispatch.save-teammate'),
+
+  /** F-4.1: Notify parent dispatcher when user sends a direct message to a child agent */
+  notifyParent: bridge.buildProvider<
+    IBridgeResponse,
+    {
+      parentConversationId: string;
+      childSessionId: string;
+      childName: string;
+      userMessage: string;
+    }
+  >('dispatch.notify-parent'),
+
+  /** F-4.3: Update group chat settings (name, leader agent, seed messages) */
+  updateGroupChatSettings: bridge.buildProvider<
+    IBridgeResponse,
+    {
+      conversationId: string;
+      groupChatName?: string;
+      leaderAgentId?: string;
+      seedMessages?: string;
+    }
+  >('dispatch.update-group-chat-settings'),
 };
 
 // ==================== Extensions API ====================

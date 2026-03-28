@@ -30,6 +30,15 @@ const TOOL_SCHEMAS = [
             presetRules: { type: 'string' },
           },
         },
+        model: {
+          type: 'object',
+          description: 'Optional model override for the child agent',
+          properties: {
+            provider_id: { type: 'string', description: 'Provider ID' },
+            model_name: { type: 'string', description: 'Model name' },
+          },
+          required: ['provider_id', 'model_name'],
+        },
       },
       required: ['prompt', 'title'],
     },

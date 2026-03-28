@@ -20,8 +20,14 @@ vi.mock('@/common', () => ({
       getChildTranscript: {
         invoke: (...args: unknown[]) => getChildTranscriptInvoke(...args),
       },
+      notifyParent: {
+        invoke: vi.fn().mockResolvedValue({ success: true }),
+      },
     },
     conversation: {
+      sendMessage: {
+        invoke: vi.fn().mockResolvedValue({}),
+      },
       responseStream: {
         on: (cb: (...args: unknown[]) => void) => {
           responseStreamOnMock(cb);
@@ -35,6 +41,10 @@ vi.mock('@/common', () => ({
       },
     },
   },
+}));
+
+vi.mock('@/common/utils', () => ({
+  uuid: vi.fn(() => 'test-uuid'),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -63,6 +73,8 @@ vi.mock('@icon-park/react', () => ({
   CloseOne: (props: Record<string, unknown>) => <span data-testid='icon-close-one' {...props} />,
   Refresh: (props: Record<string, unknown>) => <span data-testid='icon-refresh' {...props} />,
   People: (props: Record<string, unknown>) => <span data-testid='icon-people' {...props} />,
+  SendOne: (props: Record<string, unknown>) => <span data-testid='icon-send' {...props} />,
+  CheckOne: (props: Record<string, unknown>) => <span data-testid='icon-check' {...props} />,
 }));
 
 import type { ChildTaskInfoVO } from '@/renderer/pages/conversation/dispatch/types';

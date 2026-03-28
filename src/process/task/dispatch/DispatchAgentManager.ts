@@ -15,6 +15,8 @@ import { uuid } from '@/common/utils';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
+import type { IProvider } from '@/common/config/storage';
+import { ProcessConfig } from '@process/utils/initStorage';
 import BaseAgentManager from '../BaseAgentManager';
 import { IpcAgentEventEmitter } from '../IpcAgentEventEmitter';
 import type { IWorkerTaskManager } from '../IWorkerTaskManager';
@@ -148,9 +150,13 @@ export class DispatchAgentManager extends BaseAgentManager<
       }
     }
 
+    // F-4.2: Build available model list for orchestrator prompt
+    const availableModels = await this.getAvailableModels();
+
     const systemPrompt = buildDispatchSystemPrompt(this.dispatcherName, {
       leaderProfile,
       customInstructions,
+      availableModels,
     });
     const combinedRules = systemPrompt;
 
@@ -309,6 +315,33 @@ export class DispatchAgentManager extends BaseAgentManager<
       this.temporaryTeammates.set(params.teammate.id, params.teammate);
     }
 
+    // F-4.2: Resolve model override
+    let childModel = this.model;
+    let childModelName: string | undefined;
+    if (params.model) {
+      try {
+        const providers = ((await ProcessConfig.get('model.config')) || []) as IProvider[];
+        const provider = providers.find((p) => p.id === params.model!.providerId);
+        if (
+          provider &&
+          provider.enabled !== false &&
+          provider.model.includes(params.model.modelName) &&
+          provider.modelEnabled?.[params.model.modelName] !== false
+        ) {
+          childModel = { ...provider, useModel: params.model.modelName };
+          childModelName = params.model.modelName;
+          mainLog('[DispatchAgentManager]', `Model override: ${params.model.providerId}::${params.model.modelName}`);
+        } else {
+          mainWarn(
+            '[DispatchAgentManager]',
+            `Model override not found: ${params.model.providerId}::${params.model.modelName}, fallback to default`,
+          );
+        }
+      } catch (err) {
+        mainWarn('[DispatchAgentManager]', 'Failed to resolve model override, fallback to default', err);
+      }
+    }
+
     // Create child conversation in DB.
     const childId = uuid(16);
     const childConversation: TChatConversation = {
@@ -317,7 +350,7 @@ export class DispatchAgentManager extends BaseAgentManager<
       type: 'gemini',
       createTime: Date.now(),
       modifyTime: Date.now(),
-      model: this.model,
+      model: childModel,
       extra: {
         workspace: this.workspace,
         dispatchSessionType: 'dispatch_child' as const,
@@ -326,6 +359,7 @@ export class DispatchAgentManager extends BaseAgentManager<
         presetRules: params.teammate?.presetRules,
         teammateConfig: params.teammate ? { name: params.teammate.name, avatar: params.teammate.avatar } : undefined,
         yoloMode: true,
+        childModelName,
       },
     };
     await this.conversationRepo.createConversation(childConversation);
@@ -689,6 +723,27 @@ export class DispatchAgentManager extends BaseAgentManager<
     } catch (err) {
       mainWarn('[DispatchAgentManager]', `Failed to get message count for ${sessionId}`, err);
       return 0;
+    }
+  }
+
+  /**
+   * F-4.2: Get available models for orchestrator prompt injection.
+   */
+  private async getAvailableModels(): Promise<Array<{ providerId: string; models: string[] }>> {
+    try {
+      const providers = ((await ProcessConfig.get('model.config')) || []) as IProvider[];
+      return providers
+        .filter((p) => p.enabled !== false)
+        .map((p) => ({
+          providerId: p.id,
+          models: (Array.isArray(p.model) ? p.model : []).filter(
+            (m) => p.modelEnabled?.[m] !== false,
+          ),
+        }))
+        .filter((p) => p.models.length > 0);
+    } catch (err) {
+      mainWarn('[DispatchAgentManager]', 'Failed to read model config for prompt', err);
+      return [];
     }
   }
 

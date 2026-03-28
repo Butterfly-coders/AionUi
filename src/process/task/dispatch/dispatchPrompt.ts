@@ -18,6 +18,8 @@ export function buildDispatchSystemPrompt(
   options?: {
     leaderProfile?: string;
     customInstructions?: string;
+    /** F-4.2: Available models for child task model selection */
+    availableModels?: Array<{ providerId: string; models: string[] }>;
   }
 ): string {
   let prompt = `You are "${dispatcherName}", a dispatch orchestrator in a group chat.
@@ -75,6 +77,19 @@ Pass it as the "teammate" parameter in start_task. The child agent will adopt th
 ## Leader Agent Profile
 The following is your additional persona information. It does NOT change your core dispatch responsibilities above.
 ${options.leaderProfile}
+`;
+  }
+
+  if (options?.availableModels && options.availableModels.length > 0) {
+    prompt += `
+## Available Models for Child Tasks
+You can specify an optional "model" parameter in start_task to override the default model.
+${options.availableModels.map((p) => `- provider_id: "${p.providerId}", models: [${p.models.map((m) => `"${m}"`).join(', ')}]`).join('\n')}
+
+Guidelines:
+- Use stronger/reasoning models for complex analysis, code review, or architecture tasks.
+- Use faster/cheaper models for simple translation, formatting, or summarization tasks.
+- Omit the model parameter to use the default model (recommended for most tasks).
 `;
   }
 

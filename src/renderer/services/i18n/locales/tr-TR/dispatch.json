@@ -56,6 +56,12 @@
   "taskPanel": {
     "noTranscript": "Henüz transkript mevcut değil",
     "refresh": "Yenile",
+    "sendPlaceholder": "{{name}} kişisine mesaj gönderin...",
+    "sendToChild": "Gönder",
+    "sendFailed": "Mesaj gönderilemedi",
+    "childAgent": "alt ajan",
+    "sendDisabled": "{{status}} durumundaki bir göreve mesaj gönderilemez",
+    "userDirectMessage": "Kullanıcı \"{{name}}\" kişisine doğrudan mesaj gönderdi",
     "status": {
       "pending": "Bekliyor",
       "running": "Çalışıyor",
@@ -86,6 +92,25 @@
     "saveSuccess": "Asistan başarıyla kaydedildi",
     "saveDuplicate": "Bu isimde bir asistan zaten mevcut",
     "saveError": "Asistan kaydedilemedi"
+  },
+  "childModel": {
+    "label": "Model",
+    "default": "Varsayılan"
+  },
+  "settings": {
+    "title": "Grup Sohbeti Ayarları",
+    "nameLabel": "Grup Sohbeti Adı",
+    "namePlaceholder": "Grup sohbeti adını girin",
+    "leaderAgentLabel": "Lider Ajan",
+    "leaderAgentPlaceholder": "Bir lider ajan seçin",
+    "leaderAgentNone": "Yok (varsayılan orkestratörü kullan)",
+    "seedMessagesLabel": "Başlangıç Mesajları",
+    "seedMessagesPlaceholder": "Orkestratör için ek sistem talimatları",
+    "save": "Kaydet",
+    "saveSuccess": "Ayarlar kaydedildi",
+    "saveFailed": "Ayarlar kaydedilemedi",
+    "leaderAgentDeleted": "Bu ajan silindi",
+    "coldSwapNotice": "Değişiklikler orkestratöre gönderilen bir sonraki mesajda geçerli olur."
   },
   "overview": {
     "title": "Görev Genel Bakışı",

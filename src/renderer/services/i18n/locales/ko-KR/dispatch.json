@@ -56,6 +56,12 @@
   "taskPanel": {
     "noTranscript": "아직 대화 기록이 없습니다",
     "refresh": "새로고침",
+    "sendPlaceholder": "{{name}}에게 메시지 보내기...",
+    "sendToChild": "전송",
+    "sendFailed": "메시지 전송에 실패했습니다",
+    "childAgent": "하위 에이전트",
+    "sendDisabled": "{{status}} 상태의 작업에는 메시지를 보낼 수 없습니다",
+    "userDirectMessage": "사용자가 \"{{name}}\"에게 직접 메시지를 보냈습니다",
     "status": {
       "pending": "대기 중",
       "running": "실행 중",
@@ -86,6 +92,25 @@
     "saveSuccess": "어시스턴트가 성공적으로 저장되었습니다",
     "saveDuplicate": "같은 이름의 어시스턴트가 이미 존재합니다",
     "saveError": "어시스턴트 저장에 실패했습니다"
+  },
+  "childModel": {
+    "label": "모델",
+    "default": "기본"
+  },
+  "settings": {
+    "title": "그룹 채팅 설정",
+    "nameLabel": "그룹 채팅 이름",
+    "namePlaceholder": "그룹 채팅 이름을 입력하세요",
+    "leaderAgentLabel": "리더 에이전트",
+    "leaderAgentPlaceholder": "리더 에이전트를 선택하세요",
+    "leaderAgentNone": "없음 (기본 오케스트레이터 사용)",
+    "seedMessagesLabel": "시드 메시지",
+    "seedMessagesPlaceholder": "오케스트레이터에 대한 추가 시스템 지침",
+    "save": "저장",
+    "saveSuccess": "설정이 저장되었습니다",
+    "saveFailed": "설정 저장에 실패했습니다",
+    "leaderAgentDeleted": "이 에이전트는 삭제되었습니다",
+    "coldSwapNotice": "변경 사항은 다음 메시지를 오케스트레이터에 보낼 때 적용됩니다."
   },
   "overview": {
     "title": "작업 개요",

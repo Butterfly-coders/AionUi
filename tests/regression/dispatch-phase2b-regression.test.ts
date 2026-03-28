@@ -49,9 +49,22 @@ vi.mock('@/common', () => ({
           providerHandlers['saveTeammate'] = handler;
         },
       },
+      notifyParent: {
+        provider: (handler: (params: Record<string, unknown>) => Promise<unknown>) => {
+          providerHandlers['notifyParent'] = handler;
+        },
+      },
+      updateGroupChatSettings: {
+        provider: (handler: (params: Record<string, unknown>) => Promise<unknown>) => {
+          providerHandlers['updateGroupChatSettings'] = handler;
+        },
+      },
     },
     conversation: {
       listChanged: { emit: vi.fn() },
+    },
+    geminiConversation: {
+      responseStream: { emit: vi.fn() },
     },
   },
 }));
@@ -78,6 +91,10 @@ vi.mock('@process/utils/initStorage', () => ({
 vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
   mainWarn: vi.fn(),
+}));
+
+vi.mock('@process/utils/message', () => ({
+  addMessage: vi.fn(),
 }));
 
 import { initDispatchBridge } from '../../src/process/bridge/dispatchBridge';

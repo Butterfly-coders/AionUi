@@ -46,6 +46,8 @@ export type ChildTaskInfoVO = {
   teammateAvatar?: string;
   createdAt: number;
   lastActivityAt: number;
+  /** F-4.2: Model name if child uses a non-default model */
+  modelName?: string;
 };
 
 /** Group chat info returned by get-group-chat-info */
@@ -54,6 +56,10 @@ export type GroupChatInfoVO = {
   dispatcherName: string;
   children: ChildTaskInfoVO[];
   pendingNotificationCount: number;
+  /** F-4.3: Current leader agent ID */
+  leaderAgentId?: string;
+  /** F-4.3: Current seed messages */
+  seedMessages?: string;
 };
 
 /** Props for the main GroupChatView component */
@@ -157,6 +163,21 @@ export type UseTaskPanelTranscriptResult = {
   isLoading: boolean;
   error: string | null;
   refresh: () => void;
+};
+
+/** F-4.3: Props for the GroupChatSettingsDrawer component */
+export type GroupChatSettingsDrawerProps = {
+  visible: boolean;
+  onClose: () => void;
+  conversationId: string;
+  /** Current settings pre-filled from conversation extra */
+  currentSettings: {
+    groupChatName?: string;
+    leaderAgentId?: string;
+    seedMessages?: string;
+  };
+  /** Callback after successful save */
+  onSaved: () => void;
 };
 
 /** Backend GroupChatMessage shape (matches dispatchTypes.ts without importing from process layer) */
