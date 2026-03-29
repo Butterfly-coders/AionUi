@@ -1,0 +1,16 @@
+.git
+.github
+.aionui
+.claude
+.gemini
+.specify
+docs
+examples
+homebrew
+mobile
+tests
+
+resources/*.gif
+resources/*.mp4
+resources/*.png
+!resources/icon.png
