@@ -49,6 +49,19 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:v${{ steps.version.outputs.version }}
 
+      - name: Export image tar
+        shell: bash
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}:v${{ steps.version.outputs.version }}
+          docker save -o aionui-v${{ steps.version.outputs.version }}-amd64.tar ${{ env.IMAGE_NAME }}:v${{ steps.version.outputs.version }}
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aionui-image-amd64-v${{ steps.version.outputs.version }}
+          path: aionui-v${{ steps.version.outputs.version }}-amd64.tar
+          retention-days: 7
+
       - name: Print digest
         shell: bash
         run: |
