@@ -1,36 +1,24 @@
-FROM node:20-slim AS builder
+FROM oven/bun:latest
 WORKDIR /app
 
-# Install bun
-RUN npm install -g bun
-
-# Install all dependencies (including devDeps for build)
-COPY package.json bun.lockb ./
-RUN bun install
-
-# Copy source
-COPY . .
-
-# Build renderer (no Electron needed) and server bundle
-RUN bun run build:renderer:web
-RUN node scripts/build-server.mjs
-
-# ---- Runtime image ----
-FROM oven/bun:latest AS runtime
-WORKDIR /app
-
-# Copy only build artifacts and production deps
-COPY --from=builder /app/dist-server ./dist-server
-COPY --from=builder /app/out/renderer ./out/renderer
-COPY package.json bun.lockb ./
-RUN bun install --production
-
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV NPM_CONFIG_REGISTRY=https://registry.npmmirror.com
+ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
 ENV PORT=3000
 ENV NODE_ENV=production
 ENV ALLOW_REMOTE=true
 ENV DATA_DIR=/data
 
-# SQLite data volume — mount with: -v $(pwd)/data:/data
+COPY package.json bun.lock .npmrc ./
+COPY patches ./patches
+RUN for i in 1 2 3 4 5; do bun install --ignore-scripts && exit 0; echo "bun install failed, retry $i"; sleep 3; done; exit 1
+
+COPY . .
+
+RUN bun run build:renderer:web
+RUN bun scripts/build-server.mjs
+
 VOLUME ["/data"]
 EXPOSE 3000
 
