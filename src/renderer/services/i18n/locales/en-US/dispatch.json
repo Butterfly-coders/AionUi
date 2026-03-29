@@ -6,7 +6,10 @@
     "channelsSection": "Channels",
     "directMessagesSection": "Direct Messages",
     "newConversation": "New Conversation",
-    "savedAssistant": "Saved assistant"
+    "savedAssistant": "Saved assistant",
+    "noChannels": "No channels yet",
+    "collapseChannels": "Collapse channels",
+    "expandChannels": "Expand channels"
   },
   "create": {
     "title": "Create Group Chat",

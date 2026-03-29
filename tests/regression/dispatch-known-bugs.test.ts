@@ -67,43 +67,38 @@ describe('Dispatch Known Bugs Regression', () => {
     expect(filterBlock![1]).not.toMatch(/conv\.type\s*===\s*['"]dispatch['"]/);
   });
 
-  // REG-004: Channels sidebar section visible even with 0 conversations (S1: renamed to Channels)
+  // REG-004: Channels sidebar section visible even with 0 conversations (S2: moved to ChannelSection.tsx)
   it('REG-004: sidebar always renders Group Chat section header regardless of dispatch count', () => {
-    const indexFile = path.join(SRC_ROOT, 'renderer/pages/conversation/GroupedHistory/index.tsx');
-    const content = fs.readFileSync(indexFile, 'utf-8');
+    const channelSectionFile = path.join(SRC_ROOT, 'renderer/pages/conversation/GroupedHistory/ChannelSection.tsx');
+    const content = fs.readFileSync(channelSectionFile, 'utf-8');
 
-    // S1 renamed the section key from groupChatSection to channelsSection.
-    // The section header is rendered unconditionally (not gated by dispatchConversations.length > 0).
+    // S2 moved channel rendering to ChannelSection.tsx.
+    // The section header is rendered unconditionally (not gated by conversations.length > 0).
     const sectionHeaderIndex = content.indexOf('dispatch.sidebar.channelsSection');
-    const conditionalRenderIndex = content.indexOf('dispatchConversations.length > 0');
+    const conditionalRenderIndex = content.indexOf('conversations.length === 0');
 
     expect(sectionHeaderIndex).toBeGreaterThan(-1);
     expect(conditionalRenderIndex).toBeGreaterThan(-1);
 
-    // The section header must appear BEFORE the conditional children render
+    // The section header must appear BEFORE the conditional empty-state check
     expect(sectionHeaderIndex).toBeLessThan(conditionalRenderIndex);
 
     // Stronger check: verify the section header is NOT inside a block gated by
-    // dispatchConversations.length. The header lives in a `!collapsed && (` wrapper,
-    // while the list is in a separate `dispatchConversations.length > 0 && (` block.
-    // Extract the JSX between the outer <div> that contains the section header and
-    // verify the header is a sibling of, not nested inside, the length check.
+    // conversations.length. The header lives outside the `expanded && (` block that
+    // contains the length check.
     const sectionBlock = content.slice(
       content.lastIndexOf('<div', sectionHeaderIndex),
       content.indexOf('\n', conditionalRenderIndex + 50)
     );
-    // The section header line should NOT be inside a dispatchConversations.length > 0 guard
+    // The section header line should appear before the length === 0 guard
     const headerLine = sectionBlock.indexOf('dispatch.sidebar.channelsSection');
-    const lengthGuardLine = sectionBlock.indexOf('dispatchConversations.length > 0');
-    // Find the opening brace/paren of the length guard — the header must be before it
+    const lengthGuardLine = sectionBlock.indexOf('conversations.length === 0');
     expect(headerLine).toBeLessThan(lengthGuardLine);
 
-    // Verify the section header and length check are at different JSX nesting levels
-    // by checking they are in separate `{...&&` blocks
-    const beforeHeader = content.slice(Math.max(0, sectionHeaderIndex - 200), sectionHeaderIndex);
-    // Header is inside `!collapsed && (` — NOT inside a `length > 0` guard
-    expect(beforeHeader).toContain('!collapsed');
-    expect(beforeHeader).not.toContain('dispatchConversations.length');
+    // Verify the section header is inside the top-level component return (not gated by length)
+    const beforeHeader = content.slice(Math.max(0, sectionHeaderIndex - 300), sectionHeaderIndex);
+    // Header is rendered unconditionally in the non-collapsed path
+    expect(beforeHeader).not.toContain('conversations.length');
   });
 
   // REG-005: dispatch.json has no double-nesting wrapper key

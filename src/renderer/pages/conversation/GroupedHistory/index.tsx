@@ -10,8 +10,8 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen, Plus } from '@icon-park/react';
+import { Button, Empty, Input, Modal } from '@arco-design/web-react';
+import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,7 @@ import { useParams } from 'react-router-dom';
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import CreateGroupChatModal from '../dispatch/CreateGroupChatModal';
 import AgentDMGroup from './AgentDMGroup';
+import ChannelSection from './ChannelSection';
 import ConversationRow from './ConversationRow';
 import DragOverlayContent from './DragOverlayContent';
 import SortableConversationRow from './SortableConversationRow';
@@ -172,10 +173,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     ]
   );
 
-  const renderConversation = (conversation: TChatConversation) => {
-    const rowProps = getConversationRowProps(conversation);
-    return <ConversationRow key={conversation.id} {...rowProps} />;
-  };
+  const renderConversation = useCallback(
+    (conversation: TChatConversation) => {
+      const rowProps = getConversationRowProps(conversation);
+      return <ConversationRow key={conversation.id} {...rowProps} />;
+    },
+    [getConversationRowProps]
+  );
 
   // Collect all sortable IDs for the pinned section
   const pinnedIds = useMemo(() => pinnedConversations.map((c) => c.id), [pinnedConversations]);
@@ -408,24 +412,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
         {/* Channels section (dispatch group chats) */}
         <div className='mb-8px min-w-0'>
-          {!collapsed && (
-            <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold flex items-center justify-between'>
-              <span>{t('dispatch.sidebar.channelsSection')}</span>
-              <Tooltip content={t('dispatch.sidebar.newGroupChat')} position='top' mini>
-                <span
-                  className='flex-center cursor-pointer hover:bg-fill-2 rd-4px p-2px transition-colors'
-                  onClick={() => setCreateGroupChatVisible(true)}
-                >
-                  <Plus theme='outline' size='14' />
-                </span>
-              </Tooltip>
-            </div>
-          )}
-          {dispatchConversations.length > 0 && (
-            <div className='min-w-0'>
-              {dispatchConversations.map((conversation) => renderConversation(conversation))}
-            </div>
-          )}
+          <ChannelSection
+            conversations={dispatchConversations}
+            collapsed={collapsed}
+            onCreateChannel={() => setCreateGroupChatVisible(true)}
+            renderConversation={renderConversation}
+          />
         </div>
 
         {/* Direct Messages section (agent-based DM groups) */}

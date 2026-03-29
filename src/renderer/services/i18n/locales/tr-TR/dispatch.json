@@ -6,7 +6,10 @@
     "channelsSection": "Kanallar",
     "directMessagesSection": "Direkt Mesajlar",
     "newConversation": "Yeni Sohbet",
-    "savedAssistant": "Kayıtlı asistan"
+    "savedAssistant": "Kayıtlı asistan",
+    "noChannels": "Henüz kanal yok",
+    "collapseChannels": "Kanalları daralt",
+    "expandChannels": "Kanalları genişlet"
   },
   "create": {
     "title": "Grup Sohbeti Oluştur",

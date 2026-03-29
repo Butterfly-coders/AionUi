@@ -12,7 +12,7 @@ import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, People, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, MessageOne, People, Pound, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -59,12 +59,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
 
   const renderLeadingIcon = () => {
     if (isDispatchConversation) {
-      const extra = conversation.extra as { teammateConfig?: { avatar?: string } };
-      const avatar = extra.teammateConfig?.avatar;
-      if (avatar) {
-        return <span className='text-18px leading-none flex-shrink-0'>{avatar}</span>;
-      }
-      return <People theme='outline' size='20' className='line-height-0 flex-shrink-0' />;
+      return <Pound theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;
     }
 
     if (cronStatus !== 'none') {
@@ -101,7 +96,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   };
 
   const renderCompletionUnreadDot = () => {
-    if (batchMode || !hasCompletionUnread || isGenerating) {
+    if (batchMode || !hasCompletionUnread || isGenerating || selected) {
       return null;
     }
 
@@ -170,7 +165,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           </span>
         )}
 
-        {!isDispatchConversation && renderCompletionUnreadDot()}
+        {renderCompletionUnreadDot()}
         {!batchMode && (
           <div
             className={classNames(

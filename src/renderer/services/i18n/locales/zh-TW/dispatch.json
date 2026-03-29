@@ -6,7 +6,10 @@
     "channelsSection": "頻道",
     "directMessagesSection": "私訊",
     "newConversation": "新增對話",
-    "savedAssistant": "已儲存的助手"
+    "savedAssistant": "已儲存的助手",
+    "noChannels": "還沒有頻道",
+    "collapseChannels": "收起頻道",
+    "expandChannels": "展開頻道"
   },
   "create": {
     "title": "建立群聊",

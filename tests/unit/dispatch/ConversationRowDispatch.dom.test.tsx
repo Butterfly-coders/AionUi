@@ -38,6 +38,7 @@ vi.mock('@icon-park/react', () => ({
   Export: () => <span data-testid='icon-export' />,
   MessageOne: () => <span data-testid='icon-message' />,
   People: () => <span data-testid='icon-people' />,
+  Pound: () => <span data-testid='icon-pound' />,
   Pushpin: () => <span data-testid='icon-pushpin' />,
 }));
 
@@ -112,15 +113,15 @@ describe('ConversationRow - Dispatch', () => {
     vi.clearAllMocks();
   });
 
-  // CMP-ROW-001: Dispatch conversation shows People icon
-  it('CMP-ROW-001: renders People icon for dispatch conversation without avatar', () => {
+  // CMP-ROW-001: Dispatch conversation shows Pound icon
+  it('CMP-ROW-001: renders Pound icon for dispatch conversation', () => {
     render(<ConversationRow {...makeProps()} />);
 
-    expect(screen.getByTestId('icon-people')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-pound')).toBeInTheDocument();
   });
 
-  // CMP-ROW-002: Dispatch conversation with avatar shows avatar emoji
-  it('CMP-ROW-002: renders avatar emoji when teammateConfig has avatar', () => {
+  // CMP-ROW-002: Dispatch conversation always shows Pound icon (avatar emoji no longer used for dispatch)
+  it('CMP-ROW-002: renders Pound icon for dispatch conversation even when teammateConfig has avatar', () => {
     const conv = makeConversation({
       extra: {
         dispatchSessionType: 'dispatcher',
@@ -129,7 +130,7 @@ describe('ConversationRow - Dispatch', () => {
     });
     render(<ConversationRow {...makeProps({ conversation: conv })} />);
 
-    expect(screen.getByText('🎯')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-pound')).toBeInTheDocument();
   });
 
   // CMP-ROW-003: Dispatch conversation shows child task count badge
@@ -173,22 +174,22 @@ describe('ConversationRow - Dispatch', () => {
     expect(onConversationClick).not.toHaveBeenCalled();
   });
 
-  // CMP-ROW-007: Dispatch conversation with undefined extra throws
-  // (ConversationRow.tsx line 62 casts extra without optional chaining — known fragility)
-  it('CMP-ROW-007: throws when dispatch conversation has undefined extra', () => {
+  // CMP-ROW-007: Dispatch conversation with undefined extra still renders Pound icon
+  // (dispatch type check happens before extra access in renderLeadingIcon)
+  it('CMP-ROW-007: renders Pound icon for dispatch conversation even with undefined extra', () => {
     const conv = makeConversation({ extra: undefined });
-    expect(() => {
-      render(<ConversationRow {...makeProps({ conversation: conv })} />);
-    }).toThrow();
+    render(<ConversationRow {...makeProps({ conversation: conv })} />);
+
+    expect(screen.getByTestId('icon-pound')).toBeInTheDocument();
   });
 
-  // CMP-ROW-008: Dispatch conversation with empty name shows fallback
-  it('CMP-ROW-008: renders fallback when conversation name is empty', () => {
+  // CMP-ROW-008: Dispatch conversation with empty name shows Pound icon fallback
+  it('CMP-ROW-008: renders Pound icon fallback when conversation name is empty', () => {
     const conv = makeConversation({ name: '' });
     render(<ConversationRow {...makeProps({ conversation: conv })} />);
 
     // The component uses conversation.name || t('conversation.welcome.newConversation')
-    // for the tooltip; the row itself shows the empty span
-    expect(screen.getByTestId('icon-people')).toBeInTheDocument();
+    // for the tooltip; the row itself shows the Pound icon
+    expect(screen.getByTestId('icon-pound')).toBeInTheDocument();
   });
 });

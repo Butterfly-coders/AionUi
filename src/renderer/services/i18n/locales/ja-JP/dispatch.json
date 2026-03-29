@@ -6,7 +6,10 @@
     "channelsSection": "チャンネル",
     "directMessagesSection": "ダイレクトメッセージ",
     "newConversation": "新規会話",
-    "savedAssistant": "保存済みアシスタント"
+    "savedAssistant": "保存済みアシスタント",
+    "noChannels": "チャンネルはまだありません",
+    "collapseChannels": "チャンネルを折りたたむ",
+    "expandChannels": "チャンネルを展開する"
   },
   "create": {
     "title": "グループチャットを作成",

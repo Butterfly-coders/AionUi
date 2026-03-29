@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type React from 'react';
+
 import type { TChatConversation } from '@/common/config/storage';
 
 export type WorkspaceGroup = {
@@ -123,4 +125,16 @@ export type DragItem = {
   workspaceGroup?: WorkspaceGroup;
   sourceSection: 'pinned' | string;
   sourceWorkspace?: string;
+};
+
+/** Props for the ChannelSection component */
+export type ChannelSectionProps = {
+  /** Dispatch conversations to render as channels */
+  conversations: TChatConversation[];
+  /** Whether the sidebar is collapsed */
+  collapsed: boolean;
+  /** Callback to open the create group chat modal */
+  onCreateChannel: () => void;
+  /** Render function for individual conversation rows (reuses existing getConversationRowProps pattern) */
+  renderConversation: (conversation: TChatConversation) => React.ReactNode;
 };

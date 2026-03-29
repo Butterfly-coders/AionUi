@@ -6,7 +6,10 @@
     "channelsSection": "채널",
     "directMessagesSection": "다이렉트 메시지",
     "newConversation": "새 대화",
-    "savedAssistant": "저장된 어시스턴트"
+    "savedAssistant": "저장된 어시스턴트",
+    "noChannels": "아직 채널이 없습니다",
+    "collapseChannels": "채널 접기",
+    "expandChannels": "채널 펼치기"
   },
   "create": {
     "title": "그룹 채팅 만들기",
